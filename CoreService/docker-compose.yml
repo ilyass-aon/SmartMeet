@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  # Service Base de Données
+  mysqldb:
+    image: mysql:8.0
+    container_name: smartmeet-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root  # Mot de passe root
+      MYSQL_DATABASE: smartmeet_db # Nom de la base
+    ports:
+      - "3306:3306" # Expose le port 3306
+    volumes:
+      - db_data:/var/lib/mysql
+
+volumes:
+  db_data:
