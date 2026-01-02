@@ -2,6 +2,7 @@ package com.smartmeet.coreservice.controller;
 
 import com.smartmeet.coreservice.model.User;
 import com.smartmeet.coreservice.repository.UserRepository;
+import com.smartmeet.coreservice.security.JwtUtils;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder; // Import important
 import org.springframework.web.bind.annotation.*;
@@ -16,11 +17,13 @@ public class AuthController {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder; // On injecte l'encodeur
+    private final JwtUtils jwtUtils;
 
     // Injection par constructeur
-    public AuthController(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public AuthController(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtUtils jwtUtils) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.jwtUtils = jwtUtils;
     }
 
     @PostMapping("/register")
@@ -50,15 +53,14 @@ public class AuthController {
         if (userOptional.isPresent()) {
             User user = userOptional.get();
 
-            if (passwordEncoder.matches(rawPassword, user.getPassword())) {
-                return ResponseEntity.ok(Map.of(
-                        "message", "Connexion réussie",
-                        "username", user.getUsername(),
-                        "id", user.getId()
-                ));
-            }
+            String token = jwtUtils.generateToken(user.getUsername());
 
-        }
+            return ResponseEntity.ok(Map.of(
+                    "message", "Connexion réussie",
+                    "token", token, // On renvoie le token au frontend
+                    "username", user.getUsername()
+            ));
+            }
 
         return ResponseEntity.status(401).body(Map.of("message", "Email ou mot de passe incorrect"));
     }
