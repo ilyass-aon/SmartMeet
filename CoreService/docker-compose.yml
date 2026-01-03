@@ -7,7 +7,7 @@ services:
     container_name: smartmeet-mysql
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: root  # Mot de passe root
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}  # Mot de passe root
       MYSQL_DATABASE: smartmeet_db # Nom de la base
     ports:
       - "3306:3306" # Expose le port 3306
