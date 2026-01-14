@@ -4,11 +4,14 @@ import com.smartmeet.coreservice.model.User;
 import com.smartmeet.coreservice.repository.UserRepository;
 import com.smartmeet.coreservice.security.JwtUtils;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder; // Import important
+import org.springframework.security.authentication.AuthenticationManager; // IMPORTANT
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken; // IMPORTANT
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -16,21 +19,28 @@ import java.util.Optional;
 public class AuthController {
 
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder; // On injecte l'encodeur
+    private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
+    private final AuthenticationManager authenticationManager;
 
-    // Injection par constructeur
-    public AuthController(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtUtils jwtUtils) {
+
+    public AuthController(UserRepository userRepository,
+                          PasswordEncoder passwordEncoder,
+                          JwtUtils jwtUtils,
+                          AuthenticationManager authenticationManager) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtils = jwtUtils;
+        this.authenticationManager = authenticationManager;
     }
 
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody User user) {
-        if (userRepository.existsByEmail(user.getEmail())) {
+
+        if (userRepository.findByEmail(user.getEmail()).isPresent()) {
             return ResponseEntity.badRequest().body(Map.of("message", "Cet email est déjà utilisé."));
         }
+
         // Hachage du mot de passe
         String hashedPassword = passwordEncoder.encode(user.getPassword());
         user.setPassword(hashedPassword);
@@ -46,22 +56,27 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> loginUser(@RequestBody Map<String, String> loginData) {
         String email = loginData.get("email");
-        String rawPassword = loginData.get("password");
+        String password = loginData.get("password"); // Mot de passe brut (ex: "123456")
 
-        Optional<User> userOptional = userRepository.findByEmail(email);
+        try {
 
-        if (userOptional.isPresent()) {
-            User user = userOptional.get();
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(email, password)
+            );
+            
+            User user = userRepository.findByEmail(email).orElseThrow();
 
             String token = jwtUtils.generateToken(user.getUsername());
 
             return ResponseEntity.ok(Map.of(
                     "message", "Connexion réussie",
-                    "token", token, // On renvoie le token au frontend
+                    "token", token,
                     "username", user.getUsername()
             ));
-            }
 
-        return ResponseEntity.status(401).body(Map.of("message", "Email ou mot de passe incorrect"));
+        } catch (AuthenticationException e) {
+            // Si le mot de passe est faux, on renvoie une 401
+            return ResponseEntity.status(401).body(Map.of("message", "Email ou mot de passe incorrect"));
+        }
     }
 }

@@ -4,8 +4,9 @@ import ProtectedRoute from './components/ProtectedRoute'; // Le Vigile
 import LoginPage from './pages/LoginPage';
 import Dashboard from './pages/Dashboard';
 import RegisterPage from './pages/RegisterPage';
-// Page temporaire pour tester la route Room
-const VideoRoom = () => <h1>Salle Vidéo (En construction) </h1>;
+import VideoRoom from './pages/VideoRoom';
+
+
 
 function App() {
     return (
